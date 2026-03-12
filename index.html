@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActiveInvestment · green & black</title>
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- AOS (animate on scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (modular) -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body {
+            background-color: #f4f7fb;
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+        body.dark {
+            background-color: #0b1a12;
+            color: #e0f0e0;
+        }
+        /* green/black theme */
+        :root {
+            --primary: #1f8b4c;
+            --primary-dark: #0f5e2e;
+            --accent: #000000;
+            --bg-light: #ffffff;
+            --bg-dark: #0f1a14;
+            --text-light: #1e2a20;
+            --text-dark: #d0f0d0;
+        }
+        body.dark .card, body.dark .modal-content, body.dark .dropdown, body.dark .chat-popup {
+            background: #142114;
+            color: #d0f0d0;
+            border-color: #1f8b4c;
+        }
+        .navbar {
+            background: #0e2b1a;
+            color: white;
+            padding: 1rem 5%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,40,0,0.6);
+        }
+        .logo { font-size: 1.8rem; font-weight: 700; color: #9bffb5; }
+        .nav-links { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .nav-links a, .nav-links button {
+            color: #c0f0c0;
+            text-decoration: none;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-links a:hover, .nav-links button:hover { color: #5aff9a; }
+        .container { max-width: 1400px; margin: 2rem auto; padding: 0 2%; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 2rem; }
+        .card {
+            background: white; border-radius: 24px; padding: 1.8rem; box-shadow: 0 12px 30px rgba(0,30,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #b0e0b0;
+        }
+        .dark .card { background: #1c2a1c; border-color: #2b7a4b; }
+        .btn {
+            background: #1f8b4c; border: none; color: white; padding: 0.75rem 2rem; border-radius: 40px;
+            font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-block;
+        }
+        .btn-outline { background: transparent; border: 2px solid #1f8b4c; color: #1f8b4c; }
+        .btn:hover { background: #0f5e2e; transform: scale(1.02); }
+        .plan-price { font-size: 2rem; font-weight: 700; color: #1f8b4c; margin: 1rem 0; }
+        .badge { background: #1f8b4c20; padding: 0.25rem 1rem; border-radius: 50px; font-weight: 500; }
+        .flex { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        input, select, textarea {
+            padding: 0.8rem 1.2rem; border-radius: 30px; border: 1px solid #aaa; width: 100%;
+            background: transparent; margin: 0.5rem 0; font-size: 1rem;
+        }
+        .dark input, .dark select { background: #1d2e1d; color: white; border-color: #2b7a4b; }
+        .warning-message {
+            background: #fff3cd; color: #856404; padding: 1rem; border-radius: 16px; border-left: 6px solid #1f8b4c;
+        }
+        .dark .warning-message { background: #2b4a2b; color: #ffffbb; }
+        .customer-care {
+            position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 0.7rem; z-index: 999;
+        }
+        .care-icon {
+            width: 55px; height: 55px; border-radius: 50%; background: #25d366; display: flex; align-items: center;
+            justify-content: center; color: white; font-size: 2rem; box-shadow: 0 8px 15px rgba(0,80,0,0.4);
+            cursor: pointer; transition: 0.2s;
+        }
+        .care-icon.telegram { background: #0088cc; }
+        .care-icon.chat { background: #1f8b4c; }
+        .chat-popup {
+            display: none; position: fixed; bottom: 100px; right: 20px; width: 320px; height: 420px;
+            background: white; border-radius: 24px; box-shadow: 0 20px 40px black; flex-direction: column;
+            border: 2px solid #1f8b4c; z-index: 1000;
+        }
+        .chat-header { background: #1f8b4c; padding: 1rem; border-radius: 22px 22px 0 0; color: white; font-weight: 600; }
+        .chat-msgs { flex: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msg { background: #e5f5e5; padding: 0.5rem 1rem; border-radius: 18px; max-width: 80%; }
+        .dark .chat-msg { background: #2a472a; color: white; }
+        .chat-msg.admin { align-self: flex-end; background: #1f8b4c; color: white; }
+        .chat-input { display: flex; padding: 0.5rem; border-top: 1px solid #aaa; }
+        .chat-input input { flex: 1; margin: 0; border-radius: 30px; }
+        .hidden { display: none; }
+        .admin-section { background: #0e2b1a; color: white; padding: 1.5rem; border-radius: 30px; margin-top: 2rem; }
+        .stat-card { background: #1d3a1d; padding: 1rem; border-radius: 20px; }
+        .toast {
+            position: fixed; top: 20px; right: 20px; background: #1f8b4c; color: white; padding: 1rem 2rem;
+            border-radius: 50px; box-shadow: 0 6px 15px black; z-index: 9999; transition: 0.3s; animation: slideIn 0.3s;
+        }
+        @keyframes slideIn { from { right: -300px; } to { right: 20px; } }
+        /* mobile */
+        @media (max-width: 700px) {
+            .navbar { flex-direction: column; gap: 0.8rem; }
+            .nav-links { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- toast container -->
+    <div id="toast"></div>
+
+    <!-- navbar -->
+    <nav class="navbar">
+        <div class="logo">ActiveInvestment</div>
+        <div class="nav-links">
+            <a href="#" data-page="home">Home</a>
+            <a href="#" data-page="dashboard">Dashboard</a>
+            <a href="#" data-page="invest">Invest</a>
+            <a href="#" data-page="fund">Fund</a>
+            <a href="#" data-page="withdraw">Withdraw</a>
+            <a href="#" data-page="portfolio">Portfolio</a>
+            <a href="#" data-page="settings">Settings</a>
+            <a href="#" data-page="admin" id="adminLink" style="display:none;">Admin</a>
+            <button id="logoutBtn" style="display:none;">Logout</button>
+            <button id="loginBtn">Login / Register</button>
+            <button id="themeToggle"><i class="fas fa-moon"></i></button>
+        </div>
+    </nav>
+
+    <!-- main content -->
+    <div class="container" id="app"></div>
+
+    <!-- customer care icons -->
+    <div class="customer-care">
+        <a href="https://t.me/mymanagementteam09" target="_blank" class="care-icon telegram"><i class="fab fa-telegram-plane"></i></a>
+        <a href="https://wa.me/15484772197" target="_blank" class="care-icon"><i class="fab fa-whatsapp"></i></a>
+        <div class="care-icon chat" id="liveChatIcon"><i class="fas fa-comment"></i></div>
+    </div>
+
+    <!-- chat popup -->
+    <div class="chat-popup" id="chatPopup">
+        <div class="chat-header">Live support <i class="fas fa-times" style="float:right; cursor:pointer;" id="closeChat"></i></div>
+        <div class="chat-msgs" id="chatMessages"></div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Type a message...">
+            <button class="btn" id="sendChatMsg" style="padding:0.7rem 1.5rem;">Send</button>
+        </div>
+    </div>
+
+    <!-- firebase config & main code (module) -->
+    <script type="module">
+        // -------------------- FIREBASE CONFIG (REPLACE WITH YOUR CREDENTIALS) --------------------
+        const firebaseConfig = {
+    apiKey: "AIzaSyDHA6ew84lY7daJITIx01wXEwLY8V8DmLE",
+    authDomain: "activeinvest-d65bb.firebaseapp.com",
+    projectId: "activeinvest-d65bb",
+    storageBucket: "activeinvest-d65bb.firebasestorage.app",
+    messagingSenderId: "824774560275",
+    appId: "1:824774560275:web:8e56b5cb1d5f8410b1cde6"
+  };
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ---------- GLOBAL STATE ----------
+        let currentUser = null;
+        let userData = null;
+        let settings = { withdrawalInstructions: "Please read instructions below.", warningMessage: "TAKE NOTE: YOU HAVE A 35% PROFIT AFTER THIS INVESTMENT", cryptoAddresses: { bitcoin: 'bc1...', litecoin: 'ltc...', ethereum: '0x...', usdt: 'TX...' }, bankDetails: 'Bank: XYZ, Acc: 123456', promoText: 'INVEST $10,000 GET $50,000' };
+        const adminEmail = "admin@activeinvest.com"; // change to your admin email
+
+        // ---------- DOM elements ----------
+        const appDiv = document.getElementById('app');
+        const toastDiv = document.getElementById('toast');
+        const adminLink = document.getElementById('adminLink');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // ---------- helper functions ----------
+        function showToast(msg, type='success') {
+            toastDiv.innerHTML = `<div class="toast">${msg}</div>`;
+            setTimeout(() => toastDiv.innerHTML = '', 3000);
+        }
+
+        // load settings from firestore
+        async function loadSettings() {
+            const snap = await getDoc(doc(db, 'settings', 'global'));
+            if (snap.exists()) settings = snap.data();
+            else { // init default
+                const def = { withdrawalInstructions: 'Please read withdrawal instructions below.', warningMessage: 'TAKE NOTE: YOU HAVE A 35% PROFIT AFTER THIS INVESTMENT', cryptoAddresses: { bitcoin: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', litecoin: 'ltc1q...', ethereum: '0x...', usdt: 'TX...' }, bankDetails: 'First Bank · 2039445599 · Active Investment', promoText: 'INVEST $10,000 GET $50,000' };
+                await setDoc(doc(db, 'settings', 'global'), def);
+                settings = def;
+            }
+        }
+
+        // Render page based on hash
+        function renderPage() {
+            if (!currentUser) { showAuthScreen(); return; }
+            const hash = window.location.hash.slice(1) || 'dashboard';
+            if (hash === 'home') renderHome();
+            else if (hash === 'dashboard') renderDashboard();
+            else if (hash === 'invest') renderInvest();
+            else if (hash === 'fund') renderFund();
+            else if (hash === 'withdraw') renderWithdraw();
+            else if (hash === 'portfolio') renderPortfolio();
+            else if (hash === 'settings') renderSettings();
+            else if (hash === 'admin' && currentUser?.email === adminEmail) renderAdmin();
+            else renderDashboard();
+        }
+
+        // ---------- AUTH SCREEN ----------
+        function showAuthScreen() {
+            adminLink.style.display = 'none'; logoutBtn.style.display = 'none'; loginBtn.style.display = 'inline';
+            appDiv.innerHTML = `
+                <div class="card" style="max-width:500px; margin:3rem auto;" data-aos="fade-up">
+                    <h2><i class="fas fa-lock"></i> Login / Register</h2>
+                    <div class="tab">
+                        <button class="btn" id="showLogin">Login</button>
+                        <button class="btn btn-outline" id="showRegister">Register</button>
+                    </div>
+                    <div id="authForms">
+                        <div id="loginForm">
+                            <input type="email" id="loginEmail" placeholder="Email" />
+                            <input type="password" id="loginPassword" placeholder="Password" />
+                            <button class="btn" id="doLogin">Login</button>
+                        </div>
+                        <div id="registerForm" style="display:none;">
+                            <input type="text" id="regName" placeholder="Full Name" />
+                            <input type="email" id="regEmail" placeholder="Email" />
+                            <input type="password" id="regPassword" placeholder="Password" />
+                            <select id="regCurrency">
+                                <option value="USD">USD $</option><option value="EUR">EUR €</option><option value="GBP">GBP £</option>
+                                <option value="AUD">AUD $</option><option value="CAD">CAD $</option><option value="CHF">CHF</option>
+                                <option value="JPY">JPY ¥</option><option value="CNY">CNY ¥</option>
+                            </select>
+                            <button class="btn" id="doRegister">Register</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('showLogin').onclick = () => { document.getElementById('loginForm').style.display='block'; document.getElementById('registerForm').style.display='none'; };
+            document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; };
+            document.getElementById('doLogin').onclick = async () => {
+                const email = document.getElementById('loginEmail').value, pass = document.getElementById('loginPassword').value;
+                try { await signInWithEmailAndPassword(auth, email, pass); showToast('Logged in successfully'); } 
+                catch(e) { showToast(e.message, 'error'); }
+            };
+            document.getElementById('doRegister').onclick = async () => {
+                const name = document.getElementById('regName').value, email = document.getElementById('regEmail').value, pass = document.getElementById('regPassword').value, currency = document.getElementById('regCurrency').value;
+                try {
+                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                    await setDoc(doc(db, 'users', cred.user.uid), { name, email, currency, balance: 0, investBalance: 0, createdAt: new Date() });
+                    showToast('Registered successfully');
+                } catch(e) { showToast(e.message, 'error'); }
+            };
+        }
+
+        // ---------- DASHBOARD ----------
+        async function renderDashboard() {
+            if (!currentUser) return;
+            const data = await fetchUserData();
+            appDiv.innerHTML = `
+                <div data-aos="fade-up">
+                    <div class="warning-message">${settings.warningMessage}</div>
+                    <div class="grid-2">
+                        <div class="card"><h3>Balance (${data.currency})</h3><div style="font-size:2.5rem;">$${data.balance}</div></div>
+                        <div class="card"><h3>Invested</h3><div style="font-size:2.5rem;">$${data.investBalance}</div></div>
+                    </div>
+                    <h2>Why Choose Us?</h2>
+                    <div class="grid-2">
+                        <div class="card"><i class="fas fa-shield-alt fa-2x"></i><h3>Bank-Grade Security</h3></div>
+                        <div class="card"><i class="fas fa-chart-line fa-2x"></i><h3>Professional Trading</h3></div>
+                        <div class="card"><i class="fas fa-headset fa-2x"></i><h3>24/7 Support</h3></div>
+                    </div>
+                    <p>TRUSTED BY 10,000+ INVESTORS WORLDWIDE</p>
+                </div>
+            `;
+        }
+
+        async function fetchUserData() {
+            if (!currentUser) return null;
+            const ref = doc(db, 'users', currentUser.uid);
+            const snap = await getDoc(ref);
+            userData = snap.data() || { balance:0, investBalance:0, currency:'USD' };
+            return userData;
+        }
+
+        // ---------- INVEST ----------
+        function renderInvest() {
+            appDiv.innerHTML = `
+                <h2>Investment Plans</h2>
+                <div class="grid-2">
+                    <div class="card" data-aos="flip-left"><h3>Essential Plan</h3><div class="plan-price">$250</div><button class="btn invest-plan" data-amount="250">Invest Now</button></div>
+                    <div class="card" data-aos="flip-left"><h3>Advanced Plan</h3><div class="plan-price">$2,500</div><button class="btn invest-plan" data-amount="2500">Invest Now</button></div>
+                    <div class="card" data-aos="flip-left"><h3>Professional Plan</h3><div class="plan-price">$15,000</div><button class="btn invest-plan" data-amount="15000">Invest Now</button></div>
+                </div>
+                <div class="card" data-aos="fade-up">
+                    <h3>Custom amount</h3>
+                    <input type="number" id="customAmount" placeholder="Enter amount">
+                    <button class="btn" id="investCustom">Invest</button>
+                </div>
+                <p><strong>${settings.promoText}</strong></p>
+            `;
+            document.querySelectorAll('.invest-plan').forEach(b => b.onclick = () => handleInvest(+b.dataset.amount));
+            document.getElementById('investCustom').onclick = () => {
+                const amt = parseFloat(document.getElementById('customAmount').value);
+                if(amt>0) handleInvest(amt); else showToast('Enter amount');
+            };
+        }
+
+        async function handleInvest(amt) {
+            if (!currentUser) return;
+            // simple: add to investBalance (real logic would involve transaction)
+            const userRef = doc(db, 'users', currentUser.uid);
+            const snap = await getDoc(userRef);
+            const cur = snap.data().balance || 0;
+            if (cur < amt) { showToast('Insufficient balance', 'error'); return; }
+            await updateDoc(userRef, { balance: cur - amt, investBalance: (snap.data().investBalance||0) + amt });
+            showToast(`Invested $${amt} successfully. 35% profit will be credited later.`);
+            renderPage();
+        }
+
+        // ---------- FUND ----------
+        function renderFund() {
+            appDiv.innerHTML = `
+                <h2>Fund your wallet</h2>
+                <div class="grid-2">
+                    <div class="card"><h3>Cryptocurrency</h3><p>Bitcoin: ${settings.cryptoAddresses.bitcoin}</p><p>Litecoin: ${settings.cryptoAddresses.litecoin}</p><p>Ethereum: ${settings.cryptoAddresses.ethereum}</p><p>USDT: ${settings.cryptoAddresses.usdt}</p></div>
+                    <div class="card"><h3>Bank Transfer</h3><p>${settings.bankDetails}</p></div>
+                </div>
+                <p>After sending, upload proof (simulated) or wait for admin.</p>
+            `;
+        }
+
+        // ---------- WITHDRAW ----------
+        function renderWithdraw() {
+            appDiv.innerHTML = `
+                <h2>Withdraw</h2>
+                <div class="warning-message">${settings.withdrawalInstructions}</div>
+                <div class="card">
+                    <input type="number" id="withdrawAmount" placeholder="Amount to withdraw">
+                    <select id="withdrawMethod">
+                        <option>Bank Transfer</option><option>Cryptocurrency</option><option>PayPal</option>
+                    </select>
+                    <textarea id="withdrawDetails" placeholder="Account details / wallet address"></textarea>
+                    <button class="btn" id="submitWithdraw">Withdraw</button>
+                </div>
+            `;
+            document.getElementById('submitWithdraw').onclick = async () => {
+                const amt = parseFloat(document.getElementById('withdrawAmount').value);
+                const method = document.getElementById('withdrawMethod').value;
+                const details = document.getElementById('withdrawDetails').value;
+                if (!amt || !details) return;
+                await addDoc(collection(db, 'withdrawals'), { userId: currentUser.uid, amount: amt, method, details, status: 'pending', timestamp: new Date() });
+                showToast('Withdrawal request sent. Await admin approval.');
+            };
+        }
+
+        // ---------- PORTFOLIO ----------
+        async function renderPortfolio() {
+            const data = await fetchUserData();
+            appDiv.innerHTML = `<h2>Your Portfolio</h2><div class="card">Invested: $${data.investBalance}<br>Expected profit (35%): $${data.investBalance*0.35}</div>`;
+        }
+
+        // ---------- SETTINGS ----------
+        function renderSettings() {
+            appDiv.innerHTML = `
+                <h2>Settings</h2>
+                <div class="card">
+                    <button class="btn" id="changePw">Change Password</button>
+                    <button class="btn" id="darkModeToggle">Toggle Dark/Light</button>
+                    <p>2FA (placeholder - not implemented)</p>
+                </div>
+            `;
+            document.getElementById('changePw').onclick = () => { const newPw = prompt('new password'); if(newPw) updatePassword(currentUser, newPw).then(()=>showToast('Password updated')).catch(e=>showToast(e)); };
+            document.getElementById('darkModeToggle').onclick = toggleDark;
+        }
+
+        // ---------- ADMIN PANEL ----------
+        async function renderAdmin() {
+            if (currentUser?.email !== adminEmail) return;
+            // fetch users and withdrawals
+            const usersSnap = await getDocs(collection(db, 'users'));
+            const users = usersSnap.docs.map(d => ({id:d.id, ...d.data()}));
+            const withdrawSnap = await getDocs(query(collection(db,'withdrawals'), where('status','==','pending')));
+            const withdrawals = withdrawSnap.docs.map(d => ({id:d.id, ...d.data()}));
+            let html = `<div class="admin-section"><h2>Admin panel</h2>
+                <h3>Edit site messages</h3>
+                <input id="editWarning" value="${settings.warningMessage}" placeholder="Warning">
+                <textarea id="editWithdrawInst">${settings.withdrawalInstructions}</textarea>
+                <input id="editPromo" value="${settings.promoText}">
+                <h4>BTC address</h4><input id="btcAddr" value="${settings.cryptoAddresses.bitcoin}">
+                <button class="btn" id="saveSettings">Save settings</button>
+
+                <h3>Users</h3>`;
+            users.forEach(u => {
+                html += `<div style="border:1px solid #2a5a2a; padding:1rem; margin:0.5rem 0;">
+                    ${u.name} | ${u.email} | balance: $${u.balance} | investBal: $${u.investBalance} | cur: ${u.currency}
+                    <button class="btn editUserBtn" data-id="${u.id}" data-bal="${u.balance}" data-invest="${u.investBalance}">Edit balance</button>
+                </div>`;
+            });
+            html += `<h3>Pending withdrawals</h3>`;
+            withdrawals.forEach(w => {
+                html += `<div>${w.amount} | ${w.method} | ${w.details} <button class="approveWithdraw" data-id="${w.id}">Approve</button></div>`;
+            });
+            html += `</div>`;
+            appDiv.innerHTML = html;
+
+            document.getElementById('saveSettings').onclick = async () => {
+                const newSet = {
+                    warningMessage: document.getElementById('editWarning').value,
+                    withdrawalInstructions: document.getElementById('editWithdrawInst').value,
+                    promoText: document.getElementById('editPromo').value,
+                    cryptoAddresses: { ...settings.cryptoAddresses, bitcoin: document.getElementById('btcAddr').value },
+                    bankDetails: settings.bankDetails
+                };
+                await updateDoc(doc(db,'settings','global'), newSet);
+                settings = newSet;
+                showToast('Settings updated');
+            };
+            document.querySelectorAll('.editUserBtn').forEach(b => b.onclick = async (e) => {
+                const id = b.dataset.id;
+                const newBal = prompt('New balance', b.dataset.bal);
+                const newInv = prompt('New invest balance', b.dataset.invest);
+                if(newBal!==null) await updateDoc(doc(db,'users',id), { balance: parseFloat(newBal), investBalance: parseFloat(newInv) });
+                showToast('User balance updated');
+            });
+            document.querySelectorAll('.approveWithdraw').forEach(b => b.onclick = async (e) => {
+                const id = b.dataset.id;
+                await updateDoc(doc(db,'withdrawals',id), {status:'approved'});
+                showToast('Withdrawal approved');
+                renderAdmin();
+            });
+        }
+
+        // ---------- HOME (landing) ----------
+        function renderHome() {
+            appDiv.innerHTML = `
+                <div style="text-align:center;" data-aos="zoom-in">
+                    <h1>Invest Smarter with Active Investment</h1>
+                    <p>A Digital Asset Investment Platform Built on Compliance, Security, and Strategic Growth.</p>
+                    <button class="btn" onclick="location.hash='dashboard'">Start Investing</button>
+                </div>
+                <div class="grid-2" style="margin-top:4rem;">
+                    <div data-aos="fade-right"><img src="https://placehold.co/600x400/1f8b4c/white?text=Trading+Chart" style="width:100%; border-radius:40px;"></div>
+                    <div data-aos="fade-left"><h2>About Active Investment</h2><p>Active Investment is a digital asset investment platform focused on cryptocurrency portfolio management and quantitative trading strategies. We operate with a strong commitment to regulatory compliance, financial transparency, and responsible asset management practices. Our team of experts uses advanced algorithms to maximize returns while minimizing risk.</p></div>
+                </div>
+                <div class="grid-2" style="margin:3rem 0;">
+                    <div class="card">10,000+ Active Users</div><div class="card">$50M+ Total Invested</div><div class="card">150+ Countries</div>
+                </div>
+            `;
+        }
+
+        // dark mode
+        function toggleDark() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+        }
+        if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark');
+
+        // auth observer
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            if (user) {
+                adminLink.style.display = user.email === adminEmail ? 'inline' : 'none';
+                logoutBtn.style.display = 'inline'; loginBtn.style.display = 'none';
+                await loadSettings();
+                renderPage();
+            } else {
+                adminLink.style.display = 'none'; logoutBtn.style.display = 'none'; loginBtn.style.display = 'inline';
+                showAuthScreen();
+            }
+        });
+
+        logoutBtn.onclick = () => { signOut(auth); showToast('Logged out successfully'); };
+        loginBtn.onclick = () => showAuthScreen();
+        themeToggle.onclick = toggleDark;
+
+        // live chat
+        const chatPopup = document.getElementById('chatPopup');
+        document.getElementById('liveChatIcon').onclick = () => chatPopup.style.display = 'flex';
+        document.getElementById('closeChat').onclick = () => chatPopup.style.display = 'none';
+        document.getElementById('sendChatMsg').onclick = async () => {
+            if (!currentUser) { showToast('Login first'); return; }
+            const inp = document.getElementById('chatInput');
+            if (!inp.value) return;
+            await addDoc(collection(db, 'chats'), { from: currentUser.uid, message: inp.value, timestamp: new Date(), admin: false });
+            inp.value = '';
+        };
+        // listen for messages if logged in
+        if (currentUser) {
+            const q = query(collection(db, 'chats'), orderBy('timestamp'));
+            onSnapshot(q, (snap) => {
+                const box = document.getElementById('chatMessages');
+                if (!box) return;
+                box.innerHTML = '';
+                snap.forEach(d => {
+                    const msg = d.data();
+                    box.innerHTML += `<div class="chat-msg ${msg.from === 'admin' ? 'admin' : ''}">${msg.message}</div>`;
+                });
+            });
+        }
+
+        window.addEventListener('hashchange', renderPage);
+        window.addEventListener('load', ()=> { if(!window.location.hash) window.location.hash='home'; AOS.init(); });
+
+        // AOS script include (global)
+        import("https://unpkg.com/aos@2.3.1/dist/aos.js").then(m => m.default.init({once:true}));
+    </script>
+    <!-- fallback AOS if module fails -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>if(window.AOS) AOS.init();</script>
+</body>
+</html>
