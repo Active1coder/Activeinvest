@@ -168,15 +168,16 @@
 
     <!-- firebase config & main code (module) -->
     <script type="module">
-        // -------------------- FIREBASE CONFIG (REPLACE WITH YOUR CREDENTIALS) --------------------
+        // -------------------- FIREBASE CONFIG (YOUR PROJECT) --------------------
         const firebaseConfig = {
-    apiKey: "AIzaSyDHA6ew84lY7daJITIx01wXEwLY8V8DmLE",
-    authDomain: "activeinvest-d65bb.firebaseapp.com",
-    projectId: "activeinvest-d65bb",
-    storageBucket: "activeinvest-d65bb.firebasestorage.app",
-    messagingSenderId: "824774560275",
-    appId: "1:824774560275:web:8e56b5cb1d5f8410b1cde6"
-  };
+            apiKey: "AIzaSyDHA6ew84lY7daJITIx01wXEwLY8V8DmLE",
+            authDomain: "activeinvest-d65bb.firebaseapp.com",
+            projectId: "activeinvest-d65bb",
+            storageBucket: "activeinvest-d65bb.firebasestorage.app",
+            messagingSenderId: "824774560275",
+            appId: "1:824774560275:web:8e56b5cb1d5f8410b1cde6"
+        };
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
